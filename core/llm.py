@@ -23,6 +23,19 @@ Question: {question}
 Answer:"""
     return prompt
 
+def generate_answer(question, context_chunks, chat_history=None, model_name=None):
+    """Generate a complete answer (non-streaming)."""
+    client = genai.Client()
+    prompt = _build_prompt(question, context_chunks, chat_history)
+
+    try:
+        response = client.models.generate_content(
+            model=LLM_MODEL,
+            contents=prompt,
+        )
+        return response.text
+    except Exception as e:
+        return f"Error generating answer: {str(e)}"
 
 def generate_answer_stream(question, context_chunks, chat_history=None, model_name=None):
     """Generate answer as a stream of text chunks (for real-time display)."""

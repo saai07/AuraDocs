@@ -12,7 +12,7 @@ CHUNK_OVERLAP = 200
 TOP_K = 5
 
 # LLM
-LLM_MODEL = "gemini-3-flash-preview"
+LLM_MODEL = "gemini-2.5-flash"
 MAX_CHAT_HISTORY = 6  # Messages to include in context
 
 # File Processing
