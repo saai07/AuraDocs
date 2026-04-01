@@ -18,3 +18,4 @@ MAX_CHAT_HISTORY = 6  # Messages to include in context
 # File Processing
 MAX_FILE_SIZE_MB = 10
 SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".csv", ".xlsx", ".xls"]
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp"]
