@@ -30,13 +30,15 @@ def extract_text_from_file(uploaded_file):
 
     elif name.endswith(".csv"):
         df = pd.read_csv(io.BytesIO(file_bytes))
-        for row in df.astype(str).values:
-            text += " ".join(row) + "\n"
+        df = df.fillna("")
+        for row in df.values:
+            text += " ".join(str(cell) for cell in row) + "\n"
 
     elif name.endswith((".xlsx", ".xls")):
         df = pd.read_excel(io.BytesIO(file_bytes))
-        for row in df.astype(str).values:
-            text += " ".join(row) + "\n"
+        df = df.fillna("")
+        for row in df.values:
+            text += " ".join(str(cell) for cell in row) + "\n"
 
     else:
         raise ValueError(f"Unsupported file type: {name}")
