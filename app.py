@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import time
 from core import (
     extract_text_from_file,
     chunk_text,
@@ -26,15 +25,9 @@ if "embedder" not in st.session_state:
     st.session_state.embedder = Embedder()
     st.session_state.retriever = Retriever()
     st.session_state.processed_files = set()
-    st.session_state.messages = []
-    st.session_state.metrics = {
-        "files_processed": 0,
-        "total_chunks": 0,
-        "questions_asked": 0,
-        "avg_response_time": 0,
-        "response_times": [],
-        "source_counts": {},
-    }
+    st.session_state.doc_messages = []
+    st.session_state.image_messages = []
+    st.session_state.image_uploader_key = 0
 
 # --- Sidebar ---
 with st.sidebar:
@@ -71,9 +64,6 @@ with st.sidebar:
                             st.session_state.retriever.add_chunks(chunks, embeddings, file.name)
                             st.session_state.processed_files.add(file.name)
 
-                            # Update metrics
-                            st.session_state.metrics["files_processed"] += 1
-                            st.session_state.metrics["total_chunks"] = len(st.session_state.retriever.chunks)
 
                             st.success(f"✅ {file.name} — {len(chunks)} chunks")
                         except Exception as e:
@@ -91,24 +81,26 @@ with st.sidebar:
     else:
         st.header("🖼️ Upload Image")
         uploaded_image = st.file_uploader(
-            "PNG, JPG, WebP",
+            "PNG, JPG",
             type=[ext.strip(".") for ext in SUPPORTED_IMAGE_EXTENSIONS],
+            key=f"image_uploader_{st.session_state.image_uploader_key}",
         )
         if uploaded_image:
             st.image(uploaded_image, caption="Current Image", use_container_width=True)
             if st.button("🗑️ Clear Image", use_container_width=True):
-                uploaded_image = None
+                st.session_state.image_uploader_key += 1
                 st.rerun()
 
     # Clear all data
     st.divider()
     if st.button("Clear History & Data", use_container_width=True):
-        st.session_state.messages = []
         if mode == "Document Q&A":
+            st.session_state.doc_messages = []
             st.session_state.processed_files = set()
             st.session_state.retriever = Retriever()
-            st.session_state.metrics["files_processed"] = 0
-            st.session_state.metrics["total_chunks"] = 0
+        else:
+            st.session_state.image_messages = []
+            st.session_state.image_uploader_key += 1
         st.rerun()
 
 # --- Main Area ---
@@ -133,8 +125,11 @@ elif mode == "Image Chat" and not uploaded_image:
     st.info("👈 Please upload an image in the sidebar to start chatting with it!")
 
 else:
+    # Get mode-scoped messages
+    messages = st.session_state.doc_messages if mode == "Document Q&A" else st.session_state.image_messages
+
     # Display chat history
-    for msg in st.session_state.messages:
+    for msg in messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
             if msg.get("sources"):
@@ -148,12 +143,11 @@ else:
     question = st.chat_input("Ask a question...")
 
     if question:
-        st.session_state.messages.append({"role": "user", "content": question})
+        messages.append({"role": "user", "content": question})
         with st.chat_message("user"):
             st.markdown(question)
 
         with st.chat_message("assistant"):
-            start_time = time.time()
             sources = []
 
             if mode == "Image Chat":
@@ -161,7 +155,7 @@ else:
                     st.error("Please upload an image first!")
                     st.stop()
                 img_bytes = uploaded_image.getvalue()
-                stream = ask_about_image_stream(question, img_bytes)
+                stream = ask_about_image_stream(question, img_bytes, filename=uploaded_image.name)
                 answer = st.write_stream(stream)
             else:
                 # Handle RAG
@@ -172,7 +166,7 @@ else:
                     answer = "No relevant information found in documents."
                     st.markdown(answer)
                 else:
-                    stream = generate_answer_stream(question, results, st.session_state.messages)
+                    stream = generate_answer_stream(question, results, messages)
                     answer = st.write_stream(stream)
                     sources = results
                     with st.expander("📚 Sources"):
@@ -181,14 +175,7 @@ else:
                             st.caption(chunk[:300] + "...")
                             if i < len(results) - 1: st.divider()
 
-            # Update metrics
-            elapsed = time.time() - start_time
-            m = st.session_state.metrics
-            m["questions_asked"] += 1
-            m["response_times"].append(elapsed)
-            m["avg_response_time"] = sum(m["response_times"]) / len(m["response_times"])
-
-        st.session_state.messages.append({
+        messages.append({
             "role": "assistant",
             "content": answer,
             "sources": sources
