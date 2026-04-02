@@ -1,3 +1,4 @@
+import mimetypes
 from google import genai
 from google.genai import types
 from core.config import LLM_MODEL, MAX_CHAT_HISTORY
@@ -32,7 +33,7 @@ def generate_answer_stream(question, context_chunks, chat_history=None, model_na
 
     try:
         response = client.models.generate_content_stream(
-            model=LLM_MODEL,
+            model=model_name or LLM_MODEL,
             contents=prompt,
         )
         for chunk in response:
@@ -42,11 +43,31 @@ def generate_answer_stream(question, context_chunks, chat_history=None, model_na
         yield f"Error generating answer: {str(e)}"
 
 
-def ask_about_image_stream(question, image_bytes, model_name=None):
+def _detect_image_mime(filename=None, fallback="image/jpeg"):
+    """Detect MIME type from filename, defaulting to fallback."""
+    if not filename:
+        return fallback
+
+    # 1. Try system mimetypes
+    mime, _ = mimetypes.guess_type(filename)
+    if mime and mime.startswith("image/"):
+        return mime
+
+    # 2. Manual fallback for common extensions (robust across OS/registry differences)
+    ext = filename.lower().rsplit(".", 1)[-1]
+    mapping = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+    }
+    return mapping.get(ext, fallback)
+
+
+def ask_about_image_stream(question, image_bytes, model_name=None, filename=None):
     """Generate answer for a question about an image using vision."""
     client = genai.Client()
-   
-    image_part = types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg")
+    mime_type = _detect_image_mime(filename)
+    image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
 
     try:
         response = client.models.generate_content_stream(
