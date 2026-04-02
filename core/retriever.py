@@ -1,6 +1,6 @@
 import faiss
 import numpy as np
-from core.config import EMBEDDING_DIMENSION, TOP_K
+from core.config import EMBEDDING_DIMENSION, TOP_K, SIMILARITY_THRESHOLD
 
 
 class Retriever:
@@ -16,14 +16,15 @@ class Retriever:
         for chunk in chunks:
             self.chunks.append((chunk, source))
 
-    def search(self, query_embedding, k=None):
-        """Search for the top-k most similar chunks."""
+    def search(self, query_embedding, k=None, threshold=None):
+        """Search for the top-k most similar chunks, filtered by similarity threshold."""
         k = k or TOP_K
+        threshold = threshold if threshold is not None else SIMILARITY_THRESHOLD
         normalized = self._normalize(query_embedding)
         distances, indices = self.index.search(normalized, k)
         results = []
-        for idx in indices[0]:
-            if idx != -1:
+        for score, idx in zip(distances[0], indices[0]):
+            if idx != -1 and score >= threshold:
                 chunk_text, source = self.chunks[idx]
                 results.append((chunk_text, source))
         return results
