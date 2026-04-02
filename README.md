@@ -6,7 +6,7 @@ AuraDocs is an AI-powered document and image question-answering application. It 
 
 - **Multimodal Chat Support**
   - **Document Q&A**: Upload and chat with PDF, TXT, CSV, and Excel (.xlsx/.xls) files.
-  - **Image Chat**: Upload PNG, JPG, or WebP images and ask visual questions using Gemini's Vision API.
+  - **Image Chat**: Upload PNG or JPG images and ask visual questions using Gemini's Vision API.
 - **Advanced Retrieval Pipeline**
   - **Smart Chunking**: Documents are split into optimized overlapping chunks (1000 characters with 200 overlap) to preserve context.
   - **Semantic Search**: Text is embedded locally using `all-MiniLM-L6-v2` and searched instantly via a FAISS cosine similarity index.
@@ -14,7 +14,6 @@ AuraDocs is an AI-powered document and image question-answering application. It 
   - **Streaming AI Answers**: Responses stream in real-time, token by token.
   - **Contextual Chat History**: The AI remembers the conversation flow for natural follow-up questions.
   - **Source Transparency**: Expandable citations show exactly which document chunks were used to generate the answer.
-  - **Analytics Dashboard**: Monitor system metrics, including files processed, chunk limits, question volume, and average response latency.
 - **Resource Management**
   - **Memory Efficiency**: Enforced 10MB upload limits prevent server memory crashes during heavy operation.
   - **Model Caching**: The Heavy ML embedding model is cached on load to ensure instant restarts and zero reloading overhead between sessions.
