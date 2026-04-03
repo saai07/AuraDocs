@@ -113,7 +113,7 @@ if mode == "Document Q&A" and not st.session_state.processed_files:
         st.markdown("Drop your documents in the sidebar.")
     with col2:
         st.markdown("### 🧠 RAG")
-        st.markdown("Context-aware answers from your local vector index.")
+        st.markdown("Context-aware answers from your documents.")
     with col3:
         st.markdown("### 💬 Chat")
         st.markdown("Ask deep questions about your data.")
