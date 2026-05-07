@@ -10,7 +10,7 @@ CHUNK_OVERLAP = 200
 
 # Retrieval
 TOP_K = 5
-SIMILARITY_THRESHOLD = 0.1  # Minimum cosine similarity to include a result
+SIMILARITY_THRESHOLD = 0.01  # Minimum cosine similarity to include a result
 
 # LLM
 LLM_MODEL = "gemini-2.5-flash"
