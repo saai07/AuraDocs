@@ -1,0 +1,53 @@
+Content Registry Microservice — Project Context (Memory Graph)
+1. Project Objective
+A FastAPI-based backend microservice designed for uploading educational content (images/PDFs), classifying it by metadata (Class, Subject, Chapter), and extracting text and math formulas (LaTeX) using pix2text. The system stores this metadata and extracted content in a local SQLite database, preparing it for future agent-based knowledge graph integration.
+
+2. Technology Stack
+Backend Framework: FastAPI with Uvicorn (local) / Gunicorn (production)
+Database: SQLite (sqlite3) with WAL mode enabled.
+Data Validation: Pydantic v2
+OCR & Math Extraction: pix2text (used as a Mathpix alternative)
+PDF Processing: PyMuPDF (fitz) — used for page-by-page PDF extraction with progress tracking
+Storage: Local file system (uploads/ directory) and local DB (data/ directory).
+3. Core API Endpoints
+Upload & Extract
+POST /api/content/upload: Uploads a file, stores metadata, auto-triggers full extraction in background.
+POST /api/content/upload-extract: SSE (Server-Sent Events) — uploads AND extracts in a single call with live streaming progress. Returns events like:
+data: {"percent": 42, "message": "Extracting page 3/7...", "status": "processing"}
+data: {"percent": 100, "message": "Extraction complete", "status": "completed", "content_id": "...", "extracted_text": "..."}
+GET /api/content/{id}/progress: Poll extraction progress for background extractions. Returns {"percent": 0-100, "message": "...", "status": "processing|completed|failed|pending"}.
+Content CRUD
+GET /api/content: Lists uploaded content with optional query filters (class_name, subject, chapter, search).
+GET /api/content/{id}: Get a single content item with its extracted_text.
+GET /api/content/{id}/download: Download the original file.
+DELETE /api/content/{id}: Delete content + file.
+GET /api/content/{id}/render: Renders extracted markdown as HTML with MathJax.
+Metadata
+GET /api/metadata/classes, /subjects, /chapters: Retrieve available filter options.
+4. Extraction Architecture
+Page-by-Page PDF Processing (with real progress)
+PDFs are NOT processed as a single blob. Instead:
+
+PyMuPDF (fitz) opens the PDF and counts total pages.
+Each page is rendered to an image at 200 DPI.
+pix2text.recognize_page() processes each page image individually.
+A progress_cb(percent, message) callback fires after each page → enables real-time progress.
+All page results are joined with --- separators.
+Image paths are rewritten to public URLs via BASE_URL.
+Image Extraction (with staged progress)
+Images go through: Loading model (2%) → Preparing image (10%) → OCR (20%) → Saving (85%) → URL rewrite (95%) → Done (100%).
+
+Progress Tracking
+In-memory dict (_progress) protected by threading.Lock().
+Works because Gunicorn runs 1 worker (single process).
+GET /{id}/progress reads from this dict, with DB fallback if extraction already finished.
+SSE Streaming (/upload-extract)
+Uses threading.Thread + queue.Queue pattern.
+Extraction runs in a background thread, pushes events to the queue.
+FastAPI StreamingResponse reads from the queue and yields SSE events.
+Keep-alive comments (: keepalive) sent every 0.5s to prevent connection drops.
+5. Pix2Text Implementation Details
+Transformers Bug: Pinned transformers>=4.35.0,<4.58.0 due to optimum-onnx bug.
+Image Downscaling: Automatically resizes images larger than 1500px using PIL.
+Markdown Output: Uses permanent asset directories under UPLOADS_DIR/extracted_assets/ (not temp dirs).
+Path Rewriting: _rewrite_paths_to_urls() replaces local filesystem paths with BASE_URL/uploads/... URLs.

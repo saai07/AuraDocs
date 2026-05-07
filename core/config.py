@@ -20,3 +20,7 @@ MAX_CHAT_HISTORY = 6  # Messages to include in context
 MAX_FILE_SIZE_MB = 10
 SUPPORTED_EXTENSIONS = [".pdf", ".txt", ".csv", ".xlsx", ".xls"]
 SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg"]
+
+# Content Registry (external microservice)
+CONTENT_REGISTRY_URL = "https://sai237-content-registry.hf.space"
+CONTENT_REGISTRY_TIMEOUT = 30000 # seconds
